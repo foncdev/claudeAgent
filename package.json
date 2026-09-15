@@ -1,0 +1,29 @@
+{
+  "name": "agent-cli-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code CLI를 로컬에서 제어하는 매니저 (REST + SSE)",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "serve": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "web:install": "npm --prefix web install",
+    "web:build": "npm --prefix web run build",
+    "web:dev": "npm --prefix web run dev"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ws": "^8.21.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.5",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

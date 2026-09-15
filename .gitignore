@@ -1,0 +1,8 @@
+node_modules/
+dist/
+data/*.json
+data/sessions/
+.env
+
+# macOS가 폴더마다 만드는 파일. 저장소에 들어갈 이유가 없다.
+.DS_Store
