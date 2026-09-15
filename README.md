@@ -228,3 +228,13 @@ es.addEventListener('result', (e) => { console.log(JSON.parse(e.data).job.result
 
 `HOST`를 `0.0.0.0`으로 열 경우 반드시 `AGENT_API_KEY`를 설정하고, 매니저는 임의 코드
 실행 능력을 가지므로 네트워크 노출을 피하는 것이 안전하다.
+
+## 관련
+
+- [relay-service](https://github.com/foncdev/relay-service) — 밖에서 붙게 해주는 중계 서버
+- [glasses-ui](https://github.com/foncdev/glasses-ui) — 안경 UI 상태머신
+- [glasses-g2](https://github.com/foncdev/glasses-g2) — G2 호스트 앱
+
+## 라이선스
+
+MIT
