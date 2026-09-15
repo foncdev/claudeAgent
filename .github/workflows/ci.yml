@@ -1,0 +1,33 @@
+# 푸시와 PR마다 타입 검사와 빌드를 돌린다.
+#
+# 아직 테스트가 없다. 이 매니저는 claude CLI를 자식 프로세스로 물고
+# 돌아서 CI에서 그대로 돌릴 수 없다. 넣는다면 CLI를 가짜로 세우는
+# 형태가 되어야 한다.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 의존성
+        run: npm ci
+
+      - name: 타입 검사
+        run: npm run typecheck
+
+      - name: 빌드
+        run: npm run build

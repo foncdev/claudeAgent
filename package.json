@@ -9,10 +9,7 @@
     "start": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "serve": "node dist/index.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "web:install": "npm --prefix web install",
-    "web:build": "npm --prefix web run build",
-    "web:dev": "npm --prefix web run dev"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "express": "^4.21.2",
