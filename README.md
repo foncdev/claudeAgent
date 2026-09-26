@@ -86,7 +86,7 @@ npx tsx src/repl.ts my-app
 
 | 모드 | 동작 |
 |---|---|
-| `ask-risky` (기본) | Read/Grep/`ls`·`git status` 등 읽기 전용은 자동 승인, 쓰기·실행은 질문 |
+| `ask-risky` (기본) | 작업 폴더 안을 읽는 Read/Grep/`ls`·`git status` 등은 자동 승인, 폴더 밖 읽기·웹 요청·쓰기·실행은 질문 |
 | `ask-all` | 모든 도구 질문 |
 | `auto-approve` | 질문 없이 전부 승인 |
 
@@ -96,6 +96,10 @@ npx tsx src/repl.ts my-app
 이어진 경우만 자동 승인한다. 줄바꿈, 단일 `&`, 리다이렉트(`>` `<`), 명령 치환(`` ` `` `$(`)이
 하나라도 있으면 묻는다. 앞머리가 같아도 쓰거나 다른 프로그램을 부르는 옵션
 (`find -delete`·`-exec`, `rg --pre`, `git --output`·`--ext-diff`, `git branch <이름>`·`-d`)은 묻는다.
+
+파일 읽기(Read·Grep·Glob과 `cat` 같은 셸 명령)는 세션 작업 폴더 안일 때만 자동 승인한다. 심볼릭
+링크는 풀어서 보고, `$`가 든 인자는 무엇으로 펼쳐질지 모르므로 묻는다. WebFetch·WebSearch는 읽은
+내용을 밖으로 내보내는 통로가 될 수 있어 늘 묻는다.
 
 ### CLAUDE.md
 

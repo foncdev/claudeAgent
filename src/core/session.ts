@@ -411,7 +411,7 @@ export class Session {
     toolName: string,
     input: unknown,
   ): Promise<{ behavior: 'allow' | 'deny'; message?: string }> {
-    const decision = evaluate(this.policyMode, toolName, input);
+    const decision = evaluate(this.policyMode, toolName, input, this.cwd);
     if (decision.autoApprove) {
       this.emit({
         type: 'permission_resolved',
