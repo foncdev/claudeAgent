@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { timingSafeEqual } from 'node:crypto';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { ZodError } from 'zod';
-import { config } from '../core/config.js';
+import { config, isLoopback } from '../core/config.js';
 import { JobManager } from '../core/manager.js';
 import { WorkspaceRegistry, WorkspaceError } from '../core/workspaces.js';
 import {
@@ -63,16 +63,51 @@ export function createServer(): {
   app.use(express.json({ limit: '5mb' }));
 
   /**
-   * 모바일/안경 앱은 다른 오리진에서 접속한다.
-   * 인증은 API 키가 담당하므로 오리진은 열어두되, 자격증명 쿠키는 쓰지 않는다.
+   * 브라우저에서 오는 요청을 막는다.
+   *
+   * 이 매니저는 명령을 실행한다. 예전에는 요청한 오리진을 그대로 허용해,
+   * 키가 없으면 사용자가 연 아무 웹페이지나 127.0.0.1:4000으로 세션을
+   * 만들고 명령을 돌릴 수 있었다. 정상 호출자(relay-link, client.ts, 권한
+   * MCP 서버)는 브라우저가 아니라 Origin을 싣지 않으므로, Origin이 있는데
+   * 허용 목록에 없으면 거절한다.
    */
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.header('origin') ?? '*');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.header('Vary', 'Origin');
-    if (req.method === 'OPTIONS') {
-      res.sendStatus(204);
+    const origin = req.header('origin');
+    if (origin) {
+      if (!config.corsOrigins.includes(origin)) {
+        res.status(403).json({
+          error: {
+            code: 'origin_not_allowed',
+            message: `허용되지 않은 오리진: ${origin} (AGENT_CORS_ORIGINS에 추가)`,
+          },
+        });
+        return;
+      }
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.header('Vary', 'Origin');
+      if (req.method === 'OPTIONS') {
+        res.sendStatus(204);
+        return;
+      }
+    }
+    next();
+  });
+
+  /**
+   * 키가 없을 때는 이 기기 주소로 온 요청만 받는다.
+   *
+   * DNS 리바인딩은 공격자 도메인을 127.0.0.1로 바꿔 같은 오리진인 척하므로
+   * Origin 검사를 지나간다. 그때 Host는 공격자 도메인으로 남는다.
+   */
+  app.use((req, res, next) => {
+    if (config.apiKey) return next();
+    const host = (req.header('host') ?? '').replace(/:\d+$/, '');
+    if (!isLoopback(host)) {
+      res.status(403).json({
+        error: { code: 'host_not_allowed', message: 'AGENT_API_KEY 없이는 이 기기 주소로만 접속할 수 있습니다.' },
+      });
       return;
     }
     next();

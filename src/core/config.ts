@@ -27,6 +27,18 @@ export const config = {
   allowedRoots: parseRoots(process.env.AGENT_ALLOWED_ROOTS),
   /** 설정 시 모든 요청에 x-api-key 헤더를 요구한다. */
   apiKey: process.env.AGENT_API_KEY ?? '',
+  /**
+   * 브라우저에서 직접 부를 수 있는 오리진. 쉼표로 여러 개.
+   *
+   * 기본은 비어 있다. 웹·안경·폰은 relay-service를 거쳐 오고, relay-link와
+   * client.ts는 Origin을 싣지 않으므로 여기 적을 일이 없다. 예전에는 어느
+   * 오리진이든 받아줘서, 키가 없을 때 아무 웹페이지나 이 매니저로 세션을
+   * 만들고 명령을 돌릴 수 있었다.
+   */
+  corsOrigins: (process.env.AGENT_CORS_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean),
   claudeBin: process.env.CLAUDE_BIN ?? 'claude',
   dataDir: path.resolve(expandHome(process.env.AGENT_DATA_DIR ?? './data')),
   defaultTimeoutMs: Number(process.env.AGENT_TIMEOUT_MS ?? 30 * 60 * 1000),
@@ -43,3 +55,9 @@ export const config = {
   /** relay-service 목록에 표시될 이름. */
   relayName: process.env.RELAY_AGENT_NAME ?? os.hostname(),
 } as const;
+
+/** 이 기기 안에서만 닿는 주소인지. */
+export function isLoopback(host: string): boolean {
+  const h = host.replace(/^\[|\]$/g, '').toLowerCase();
+  return h === 'localhost' || h === '::1' || h.startsWith('127.');
+}

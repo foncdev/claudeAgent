@@ -49,7 +49,8 @@ npx tsx src/client.ts ws
 | `PORT` | `4000` | 리스닝 포트 |
 | `HOST` | `127.0.0.1` | 리스닝 주소. 로컬 전용 유지 권장 |
 | `AGENT_ALLOWED_ROOTS` | `~/develop` | 워크스페이스 허용 루트. `:`로 여러 개 |
-| `AGENT_API_KEY` | (없음) | 설정 시 `x-api-key` 헤더 필수 |
+| `AGENT_API_KEY` | (없음) | 설정 시 `x-api-key` 헤더 필수. 비우면 이 기기 주소로만 받고, `HOST`가 루프백이 아니면 뜨지 않는다 |
+| `AGENT_CORS_ORIGINS` | (없음) | 브라우저에서 직접 부를 수 있는 오리진. 쉼표로 여러 개. 목록에 없는 `Origin`은 403 |
 | `AGENT_MAX_CONCURRENT` | `3` | 동시 실행 잡 수 |
 | `AGENT_TIMEOUT_MS` | `1800000` | 기본 타임아웃 (30분) |
 | `CLAUDE_BIN` | `claude` | CLI 경로 |
@@ -235,8 +236,11 @@ es.addEventListener('result', (e) => { console.log(JSON.parse(e.data).job.result
 `permissionMode: "bypassPermissions"`는 모든 권한 확인을 건너뛴다. 신뢰할 수 있는
 프롬프트에만 사용할 것. 기본값은 CLI 기본 동작(`default`)이다.
 
-`HOST`를 `0.0.0.0`으로 열 경우 반드시 `AGENT_API_KEY`를 설정하고, 매니저는 임의 코드
+`AGENT_API_KEY` 없이 `HOST`를 루프백이 아닌 주소로 열면 매니저가 뜨지 않는다. 매니저는 임의 코드
 실행 능력을 가지므로 네트워크 노출을 피하는 것이 안전하다.
+
+브라우저가 보낸 요청(`Origin` 헤더가 있는 것)은 `AGENT_CORS_ORIGINS`에 없으면 거절한다. 키가 없을
+때는 `Host`도 이 기기 주소여야 한다. 사용자가 연 웹페이지나 DNS 리바인딩으로 매니저를 부를 수 없다.
 
 Claude CLI에는 `AGENT_`·`RELAY_`로 시작하는 환경변수를 넘기지 않는다. 넘기면 Claude가
 `echo $AGENT_API_KEY`로 매니저 키를 얻어 자기 권한을 스스로 풀 수 있다. 권한 MCP 서버에는

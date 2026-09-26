@@ -1,17 +1,27 @@
 import { networkInterfaces } from 'node:os';
 import { createServer } from './api/server.js';
 import { RelayLink } from './core/relay-link.js';
-import { config } from './core/config.js';
+import { config, isLoopback } from './core/config.js';
+
+// 키 없이 밖에 열면 같은 네트워크의 누구나 명령을 돌릴 수 있다. 경고로
+// 끝내면 켜진 채로 두게 되므로 아예 뜨지 않는다.
+if (!config.apiKey && !isLoopback(config.host)) {
+  console.error(
+    `[agent-cli] HOST=${config.host}로 열려면 AGENT_API_KEY가 필요합니다.\n` +
+      '  openssl rand -hex 24 로 만든 값을 .env에 넣거나, HOST=127.0.0.1로 두세요.',
+  );
+  process.exit(1);
+}
 
 const { app } = createServer();
 
 const server = app.listen(config.port, config.host, () => {
   console.log(`[agent-cli] http://${config.host}:${config.port}`);
   console.log(`[agent-cli] 허용 루트: ${config.allowedRoots.join(', ')}`);
-  console.log(`[agent-cli] 인증: ${config.apiKey ? 'x-api-key 필요' : '없음(로컬 전용 권장)'}`);
+  console.log(`[agent-cli] 인증: ${config.apiKey ? 'x-api-key 필요' : '없음 — 이 기기 주소로만 받음'}`);
   console.log(`[agent-cli] 동시 실행 제한: ${config.maxConcurrent}`);
 
-  // 외부에 열려 있으면 접속 주소를 알려주고, 키가 없으면 경고한다.
+  // 외부에 열려 있으면 접속 주소를 알려준다. 키 없이 여는 것은 위에서 막았다.
   if (config.host !== '127.0.0.1' && config.host !== 'localhost') {
     for (const [name, addrs] of Object.entries(networkInterfaces())) {
       for (const a of addrs ?? []) {
@@ -19,11 +29,6 @@ const server = app.listen(config.port, config.host, () => {
           console.log(`[agent-cli] LAN 접속: http://${a.address}:${config.port}  (${name})`);
         }
       }
-    }
-    if (!config.apiKey) {
-      console.warn(
-        '[agent-cli] 경고: 네트워크에 열려 있는데 AGENT_API_KEY가 없습니다. 같은 와이파이의 누구나 접근할 수 있습니다.',
-      );
     }
   }
 });
