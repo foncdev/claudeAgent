@@ -125,7 +125,8 @@ REPL 헤더와 `GET /sessions/:id`의 `memory`에 로드된 파일이 표시된�
 
 ## API
 
-모든 요청에 `x-api-key` 헤더 필요 (`AGENT_API_KEY` 설정 시). `/health`는 예외.
+모든 요청에 `x-api-key` 헤더 필요 (`AGENT_API_KEY` 설정 시). `/health`는 예외지만, 키 없이는
+`{ok, version}`만 돌려준다. 허용 루트(홈 경로)와 잡 통계는 키를 낸 호출자에게만 준다.
 
 ### 워크스페이스 (실행 경로 관리)
 
@@ -238,6 +239,10 @@ es.addEventListener('result', (e) => { console.log(JSON.parse(e.data).job.result
 돌린다. relay가 `/sessions`·`/jobs`를 중계하므로, 요청 값으로 받아주면 폰·안경 로그인 토큰 하나로
 밖에서 확인 없는 실행이 된다. 그래서 기본은 거절(403)이고, 이 기기에서 자동화에 쓸 때만
 `AGENT_ALLOW_UNCHECKED=1`로 켠다. 기본 모드는 세션이 `manual`, 잡이 CLI 기본 동작(`default`)이다.
+
+relay-link는 relay-service가 중계하는 경로(`/sessions`·`/workspaces`·`/jobs`·`/files`·`/health`)만
+받는다. `..`을 끼운 경로는 정규화한 뒤 다시 보므로 `/internal` 같은 경로로 빠지지 않는다. 밖의 relay에
+`ws://`(평문)로 붙거나 `RELAY_AGENT_TOKEN`이 24자보다 짧으면 시작할 때 경고한다.
 
 CLI에 넘기는 값은 `--옵션=값` 한 덩어리로, 잡의 프롬프트는 `--` 뒤에 둔다. `-`로 시작하는 값이
 CLI 옵션으로 읽히지 않게 하려는 것이다.

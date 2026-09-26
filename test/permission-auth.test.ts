@@ -78,3 +78,16 @@ test('다른 API는 여전히 매니저 키가 필요하다', async () => {
     assert.equal((await fetch(`${base}/workspaces`, { headers: { 'x-api-key': 'master-key' } })).status, 200);
   });
 });
+
+test('/health는 키 없이 살아 있는지만 알린다', async () => {
+  await withServer(async (base) => {
+    const open = (await (await fetch(`${base}/health`)).json()) as Record<string, unknown>;
+    assert.equal(open.ok, true);
+    assert.equal(open.allowedRoots, undefined, '홈 경로가 드러나지 않는다');
+
+    const full = (await (
+      await fetch(`${base}/health`, { headers: { 'x-api-key': 'master-key' } })
+    ).json()) as Record<string, unknown>;
+    assert.ok(Array.isArray(full.allowedRoots), '키를 내면 웹이 쓰는 허용 루트를 준다');
+  });
+});

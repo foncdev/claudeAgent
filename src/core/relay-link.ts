@@ -10,6 +10,8 @@ import { config } from './config.js';
 
 /** 끊겼을 때 다시 붙기까지 기다리는 시간. 점점 늘려 서버를 두드리지 않는다. */
 const RETRY_MIN_MS = 2_000;
+/** relay-service가 이 매니저로 중계하는 경로. relay-service의 forward 목록과 맞춘다. */
+const RELAYED_PATH = /^\/(sessions|workspaces|jobs|files|health)(\/|$)/;
 const RETRY_MAX_MS = 60_000;
 
 interface ServerMessage {
@@ -79,8 +81,18 @@ export class RelayLink {
   }
 
   /** 로컬 API 주소로 바꾼다. */
-  private localUrl(path: string): string {
-    return `http://127.0.0.1:${config.port}${path}`;
+  /**
+   * relay가 보낸 경로를 이 매니저의 주소로 바꾼다. 중계할 경로가 아니면 null.
+   *
+   * relay-service가 중계하는 경로(/sessions·/workspaces·/jobs·/files·/health)만
+   * 받는다. relay가 뚫리거나 `/sessions/../internal/permission`처럼 ..을
+   * 끼운 경로를 넘겨도, URL로 정규화한 뒤 다시 보므로 그 밖으로 가지 않는다.
+   */
+  private localUrl(path: string): string | null {
+    const url = new URL(path, `http://127.0.0.1:${config.port}`);
+    if (url.origin !== `http://127.0.0.1:${config.port}`) return null;
+    if (!RELAYED_PATH.test(url.pathname)) return null;
+    return url.toString();
   }
 
   private headers(): Record<string, string> {
@@ -123,8 +135,18 @@ export class RelayLink {
     path: string,
     body?: string,
   ): Promise<void> {
+    const url = this.localUrl(path);
+    if (!url) {
+      this.send({
+        type: 'response',
+        id,
+        status: 404,
+        body: JSON.stringify({ error: { code: 'not_relayed', message: `중계하지 않는 경로: ${path}` } }),
+      });
+      return;
+    }
     try {
-      const res = await fetch(this.localUrl(path), {
+      const res = await fetch(url, {
         method,
         headers: {
           ...this.headers(),
@@ -145,12 +167,17 @@ export class RelayLink {
 
   /** SSE를 열어 오는 대로 서버에 넘긴다. */
   private openStream(id: string, path: string): void {
+    const url = this.localUrl(path);
+    if (!url) {
+      this.send({ type: 'stream_chunk', id, chunk: '', done: true });
+      return;
+    }
     const controller = new AbortController();
     this.streams.set(id, controller);
 
     void (async () => {
       try {
-        const res = await fetch(this.localUrl(path), {
+        const res = await fetch(url, {
           headers: this.headers(),
           signal: controller.signal,
         });

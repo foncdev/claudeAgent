@@ -141,13 +141,20 @@ export function createServer(): {
     next();
   });
 
-  app.get('/health', (_req, res) => {
-    res.json({
-      ok: true,
-      version: '0.1.0',
-      allowedRoots: config.allowedRoots,
-      ...manager.stats(),
-    });
+  /**
+   * 헬스체크. 인증 없이 열려 있으므로 살아 있다는 것만 알린다.
+   *
+   * 허용 루트(홈 경로와 사용자 이름이 드러난다)와 잡 통계는 키를 낸
+   * 호출자에게만 준다. 웹의 워크스페이스 추가 화면은 relay-link를 거쳐
+   * 오는데, relay-link가 키를 붙이므로 그대로 받는다.
+   */
+  app.get('/health', (req, res) => {
+    const basic = { ok: true, version: '0.1.0' };
+    if (config.apiKey && !sameSecret(req.header('x-api-key') ?? '', config.apiKey)) {
+      res.json(basic);
+      return;
+    }
+    res.json({ ...basic, allowedRoots: config.allowedRoots, ...manager.stats() });
   });
 
   // --- 워크스페이스 ---

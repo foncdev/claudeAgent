@@ -37,6 +37,15 @@ const server = app.listen(config.port, config.host, () => {
 // 맥이 공유기 안에 있어도 밖에서 쓸 수 있게 하는 경로다.
 let link: RelayLink | undefined;
 if (config.relayUrl) {
+  // 토큰은 접속 주소의 쿼리로 실린다. 밖의 relay로 ws://(평문)로 붙으면
+  // 토큰과 오가는 대화가 그대로 보인다.
+  const relayHost = new URL(config.relayUrl).hostname;
+  if (config.relayUrl.startsWith('ws://') && !isLoopback(relayHost)) {
+    console.warn('[agent-cli] 경고: 밖의 relay에 ws://(평문)로 붙습니다. wss://를 쓰세요.');
+  }
+  if (config.relayToken.length < 24) {
+    console.warn('[agent-cli] 경고: RELAY_AGENT_TOKEN이 짧습니다. openssl rand -hex 24 로 만든 값을 쓰세요.');
+  }
   link = new RelayLink(config.relayUrl, config.relayToken, config.relayName);
   link.start();
   console.log(`[agent-cli] relay 연결 시도: ${config.relayUrl}`);
