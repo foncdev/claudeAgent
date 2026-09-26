@@ -92,6 +92,11 @@ npx tsx src/repl.ts my-app
 
 실행 중 `/policy auto-approve`로 바꾸거나, 권한 질문에서 `3`을 골라 세션 전체 허용으로 전환할 수 있다.
 
+`ask-risky`에서 셸 명령은 `ls`·`cat`·`grep`·`git status` 같은 읽기 전용이 `&&`·`||`·`;`·`|`로
+이어진 경우만 자동 승인한다. 줄바꿈, 단일 `&`, 리다이렉트(`>` `<`), 명령 치환(`` ` `` `$(`)이
+하나라도 있으면 묻는다. 앞머리가 같아도 쓰거나 다른 프로그램을 부르는 옵션
+(`find -delete`·`-exec`, `rg --pre`, `git --output`·`--ext-diff`, `git branch <이름>`·`-d`)은 묻는다.
+
 ### CLAUDE.md
 
 세션 시작 시 CLAUDE.md를 자동으로 찾아 시스템 프롬프트로 주입한다.
