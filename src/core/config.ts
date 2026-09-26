@@ -59,5 +59,7 @@ export const config = {
 /** 이 기기 안에서만 닿는 주소인지. */
 export function isLoopback(host: string): boolean {
   const h = host.replace(/^\[|\]$/g, '').toLowerCase();
-  return h === 'localhost' || h === '::1' || h.startsWith('127.');
+  // 앞머리만 보면 127.evil.com 같은 이름이 통과한다. DNS 리바인딩이 바로
+  // 그런 이름을 127.0.0.1로 돌려 쓰므로, 숫자 주소 전체를 맞춰 본다.
+  return h === 'localhost' || h === '::1' || /^127(\.\d{1,3}){3}$/.test(h);
 }

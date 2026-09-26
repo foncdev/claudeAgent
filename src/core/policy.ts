@@ -56,6 +56,8 @@ function realish(p: string): string {
  */
 export function insideCwd(p: string, cwd: string | undefined): boolean {
   if (!cwd) return false;
+  // ~user·~-·~+는 남의 홈이나 다른 폴더로 펼쳐진다. 풀 수 없으니 밖으로 본다.
+  if (/^~[^/]/.test(p)) return false;
   const root = realish(path.resolve(cwd));
   const target = realish(path.resolve(root, expandHome(p)));
   const rel = path.relative(root, target);
@@ -115,6 +117,11 @@ const SHELL_ESCAPES = [
 /** 앞머리는 안전해 보여도 이 옵션이 붙으면 쓰거나 다른 프로그램을 실행한다. */
 const UNSAFE_ARGS: Array<[RegExp, RegExp]> = [
   [/^find\s/, /\s-(delete|exec|execdir|ok|okdir|fprint0?|fprintf|fls)\b/],
+  // 링크를 따라가면 작업 폴더 안의 링크를 통해 밖을 읽는다. 인자만 봐서는
+  // 알 수 없으므로 따라가는 옵션 자체를 묻는다.
+  [/^find\s/, /\s-(L|follow)\b/],
+  [/^grep\s/, /\s(-[a-zA-Z]*[RS]|--dereference-recursive)\b/],
+  [/^rg\s/, /\s(-[a-zA-Z]*L|--follow)\b/],
   // --pre는 파일마다 임의 프로그램을 돌린다.
   [/^rg\s/, /\s--pre(=|\s|$)|\s--pre-glob/],
   // --output은 diff 계열 공통 옵션으로 파일을 쓴다. --ext-diff는 외부 프로그램을 부른다.
@@ -125,22 +132,42 @@ const UNSAFE_ARGS: Array<[RegExp, RegExp]> = [
  * 인자 중 경로로 보이는 것이 전부 작업 폴더 안인지.
  *
  * cat·grep·find는 읽기만 하지만 `cat ~/.ssh/id_rsa`처럼 어디든 읽는다.
- * /·~로 시작하거나 ..을 거치는 인자, 실제로 있는 인자는 링크까지 풀어
- * 보고, 밖이면 묻는다.
- * $가 들어간 인자는 무엇으로 펼쳐질지 모르므로 묻는다($HOME/.ssh 등).
+ * 셸이 펼친 뒤의 경로를 알아야 하는데 여기서는 셸을 흉내 낼 수밖에 없다.
+ * 그래서 펼침 결과를 확신할 수 없는 꼴은 풀어 보지 않고 바로 묻는다.
+ *
+ *  - $ 변수, { } 중괄호 펼침, \ 이스케이프: 무엇이 될지 모른다
+ *  - ~user·~-·~+: 남의 홈이나 이전 폴더로 펼쳐진다. ~와 ~/만 안다
+ *  - .으로 시작하는 조각에 글롭(* ? [): macOS bash 3.2는 `.*`가 ..와도
+ *    맞아 `cat .*\/.env`가 상위 폴더를 읽는다
+ *
+ * 따옴표는 셸이 떼고 이어 붙이므로 전부 떼고 본다(`""/etc/passwd`).
+ * 옵션에 붙은 경로(`-f/etc/x`, `--file=/etc/x`)도 떼어 본다.
  */
 function argsInside(part: string, cwd: string | undefined): boolean {
   for (const raw of part.split(/\s+/).slice(1)) {
-    const token = raw.replace(/^['"]|['"]$/g, '');
-    if (token.includes('$')) return false;
-    // --file=/etc/x 같은 꼴은 = 뒤를 본다.
-    const value = token.startsWith('-') && token.includes('=') ? token.slice(token.indexOf('=') + 1) : token;
-    const looksLikePath =
-      value.startsWith('/') || value.startsWith('~') || value.split('/').includes('..');
-    // 평범한 이름이라도 실제로 있으면 풀어 본다. 작업 폴더 안의 링크가
-    // 밖을 가리킬 수 있다(`cat link/.env`).
-    const exists = cwd !== undefined && value !== '' && fs.existsSync(path.resolve(cwd, value));
-    if ((looksLikePath || exists) && !insideCwd(value, cwd)) return false;
+    if (/[$\\{}]/.test(raw)) return false;
+    const token = raw.replace(/['"]/g, '');
+    if (token === '') continue;
+
+    const candidates = [token];
+    if (token.startsWith('-')) {
+      // 옵션 자체가 아니라 거기 붙은 값을 본다.
+      const eq = token.indexOf('=');
+      const slash = token.search(/[/~.]/);
+      candidates[0] = eq >= 0 ? token.slice(eq + 1) : slash > 0 ? token.slice(slash) : '';
+    }
+
+    for (const value of candidates) {
+      if (value === '') continue;
+      if (/^~[^/]/.test(value)) return false;
+      if (value.split('/').some((seg) => seg.startsWith('.') && /[*?[]/.test(seg))) return false;
+      const looksLikePath =
+        value.startsWith('/') || value.startsWith('~') || value.split('/').includes('..');
+      // 평범한 이름이라도 실제로 있으면 풀어 본다. 작업 폴더 안의 링크가
+      // 밖을 가리킬 수 있다(`cat link/.env`).
+      const exists = cwd !== undefined && fs.existsSync(path.resolve(cwd, value));
+      if ((looksLikePath || exists) && !insideCwd(value, cwd)) return false;
+    }
   }
   return true;
 }

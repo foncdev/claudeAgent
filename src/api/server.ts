@@ -126,7 +126,7 @@ export function createServer(): {
     const isStream = req.path.endsWith('/stream');
     const provided =
       req.header('x-api-key') ?? (isStream ? (req.query.apiKey as string | undefined) : undefined);
-    if (provided !== config.apiKey) {
+    if (!sameSecret(provided ?? '', config.apiKey)) {
       res.status(401).json({
         error: {
           code: 'unauthorized',

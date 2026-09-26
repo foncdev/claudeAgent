@@ -148,3 +148,40 @@ test('셸 읽기 명령도 작업 폴더 밖이면 묻는다', () => {
   assert.equal(isSafeBash('grep --file=/etc/passwd x', cwd), false);
   assert.equal(isSafeBash('git log -- /etc', cwd), false);
 });
+
+test('셸이 펼쳐서 밖으로 나가는 꼴은 묻는다', () => {
+  for (const cmd of [
+    'cat ~root/.ssh/id_rsa', // 남의 홈
+    'cat ~-/x', // 이전 폴더
+    'cat {/etc/passwd,x}', // 중괄호 펼침
+    'cat ""/etc/passwd', // 따옴표를 떼면 절대 경로
+    "cat '/'etc/passwd",
+    'cat \\/etc/passwd', // 이스케이프
+    'grep -f/etc/passwd x', // 옵션에 붙은 경로
+    'cat .*/.env', // bash 3.2는 .*가 ..와도 맞는다
+    'ls .?',
+    'find -L . -name .env', // 링크를 따라간다
+    'grep -R KEY .',
+    'grep -rS KEY .',
+    'rg -L KEY',
+    'rg --follow KEY',
+  ]) {
+    assert.equal(isSafeBash(cmd, cwd), false, cmd);
+  }
+  assert.equal(auto('Read', { file_path: '~root/.ssh/id_rsa' }), false);
+});
+
+test('흔한 읽기 명령은 여전히 자동 승인한다', () => {
+  for (const cmd of [
+    'cat .env.example',
+    'head -20 src/a.ts',
+    'grep -rn "foo.bar" src',
+    'grep -r KEY .',
+    'find . -name "*.ts"',
+    'git log --since=2.weeks --oneline',
+    'git diff HEAD~1',
+    'ls -la src',
+  ]) {
+    assert.equal(isSafeBash(cmd, cwd), true, cmd);
+  }
+});

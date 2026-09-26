@@ -74,5 +74,8 @@ test('키가 없으면 이 기기 주소가 아닌 Host는 거절한다 (DNS 리
   await withServer(async (port) => {
     assert.equal((await call(port, { host: `attacker.example:${port}` })).status, 403);
     assert.equal((await call(port, { host: `192.168.0.10:${port}` })).status, 403);
+    // 앞머리만 127인 이름. 리바인딩이 바로 이런 이름을 쓴다.
+    assert.equal((await call(port, { host: `127.evil.example:${port}` })).status, 403);
+    assert.equal((await call(port, { host: `127.0.0.1.nip.io:${port}` })).status, 403);
   });
 });
