@@ -35,6 +35,15 @@ export const config = {
    * 오리진이든 받아줘서, 키가 없을 때 아무 웹페이지나 이 매니저로 세션을
    * 만들고 명령을 돌릴 수 있었다.
    */
+  /**
+   * 권한 확인을 건너뛰는 실행을 요청으로 받을지.
+   *
+   * bypassPermissions·auto 모드와 잡의 allowedTools는 사람의 확인 없이
+   * 도구를 돌린다. relay가 /sessions·/jobs를 중계하므로, 받아주면 폰·안경
+   * 로그인 토큰 하나로 밖에서 확인 없는 실행이 된다. 기본은 거절이고,
+   * 이 기기에서 자동화에 쓰려면 AGENT_ALLOW_UNCHECKED=1로 켠다.
+   */
+  allowUnchecked: process.env.AGENT_ALLOW_UNCHECKED === '1',
   corsOrigins: (process.env.AGENT_CORS_ORIGINS ?? '')
     .split(',')
     .map((o) => o.trim())

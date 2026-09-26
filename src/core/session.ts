@@ -253,7 +253,8 @@ export class Session {
       '--permission-mode',
       this.options.permissionMode ?? 'manual',
     ];
-    if (this.options.model) args.push('--model', this.options.model);
+    // 값은 --옵션=값 한 덩어리로 넘긴다. `-`로 시작하는 값이 옵션으로 읽히지 않게. runner.ts 참고.
+    if (this.options.model) args.push(`--model=${this.options.model}`);
 
     // --setting-sources ''로 설정을 격리하므로 CLAUDE.md가 자동 로드되지 않는다.
     // 직접 읽어 시스템 프롬프트로 주입한다.
@@ -265,9 +266,9 @@ export class Session {
     }
     if (this.options.appendSystemPrompt) extraPrompt.push(this.options.appendSystemPrompt);
     if (extraPrompt.length > 0) {
-      args.push('--append-system-prompt', extraPrompt.join('\n\n---\n\n'));
+      args.push(`--append-system-prompt=${extraPrompt.join('\n\n---\n\n')}`);
     }
-    if (this.options.resumeSessionId) args.push('--resume', this.options.resumeSessionId);
+    if (this.options.resumeSessionId) args.push(`--resume=${this.options.resumeSessionId}`);
 
     const child = spawn(config.claudeBin, args, {
       cwd: this.cwd,

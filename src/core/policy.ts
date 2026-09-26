@@ -267,3 +267,41 @@ export function summarize(toolName: string, input: unknown): string {
     }
   }
 }
+
+/** 서버 설정이 허락하지 않는 실행을 요청했을 때. */
+export class PolicyError extends Error {
+  constructor(message: string, readonly code = 'unchecked_disabled') {
+    super(message);
+  }
+}
+
+/**
+ * CLI가 권한 MCP 서버에 묻지 않고 도구를 돌리는 모드.
+ *
+ * 이 매니저의 확인 흐름(안경의 권한 화면)은 CLI가 물어올 때만 끼어든다.
+ * 이 모드들은 묻지 않으므로 policyMode가 무엇이든 소용이 없다.
+ */
+const UNCHECKED_MODES = new Set(['bypassPermissions', 'auto']);
+
+/**
+ * 사람의 확인 없이 도구를 돌리는 요청을 막는다.
+ *
+ * 세션·잡 생성과 이어가기가 모두 여기를 지난다. allow는 서버 설정
+ * (AGENT_ALLOW_UNCHECKED)이고, 요청 값으로는 켤 수 없다.
+ */
+export function assertChecked(
+  input: { permissionMode?: string; allowedTools?: string[] },
+  allow: boolean,
+): void {
+  if (allow) return;
+  if (input.permissionMode && UNCHECKED_MODES.has(input.permissionMode)) {
+    throw new PolicyError(
+      `permissionMode '${input.permissionMode}'는 권한 확인을 건너뜁니다. 이 서버에서는 꺼져 있습니다 (AGENT_ALLOW_UNCHECKED=1로 켬).`,
+    );
+  }
+  if (input.allowedTools && input.allowedTools.length > 0) {
+    throw new PolicyError(
+      'allowedTools는 확인 없이 도구를 돌리게 합니다. 이 서버에서는 꺼져 있습니다 (AGENT_ALLOW_UNCHECKED=1로 켬).',
+    );
+  }
+}

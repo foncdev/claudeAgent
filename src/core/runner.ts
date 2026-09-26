@@ -38,25 +38,34 @@ interface StreamLine {
   };
 }
 
-/** CLI 인자를 조립한다. 사용자 입력은 전부 개별 argv 원소로 넘어가므로 셸 인젝션 위험이 없다. */
+/**
+ * CLI 인자를 조립한다.
+ *
+ * 셸을 거치지 않으므로 셸 인젝션은 없지만, CLI 옵션 인젝션은 따로 막아야
+ * 한다. -p는 값을 받지 않는 플래그라, 그 뒤에 둔 프롬프트가 `-`로 시작하면
+ * CLI가 옵션으로 읽었다(프롬프트 "--version"이 버전을 찍었다). 그래서
+ *  - 값이 있는 옵션은 `--옵션=값` 한 덩어리로 넘기고
+ *  - 프롬프트는 `--` 뒤 맨 끝에 둔다
+ * 도구 목록은 여러 값을 받는 옵션이라 = 꼴로 묶을 수 없다. 원소가 `-`로
+ * 시작하지 못하게 스키마에서 막는다.
+ */
 export function buildArgs(input: CreateJobInput): string[] {
   const args = [
     '-p',
-    input.prompt,
-    '--output-format',
-    'stream-json',
+    '--output-format=stream-json',
     // stream-json 출력에는 --verbose가 필요하다.
     '--verbose',
   ];
 
-  if (input.resumeSessionId) args.push('--resume', input.resumeSessionId);
-  if (input.model) args.push('--model', input.model);
-  if (input.permissionMode) args.push('--permission-mode', input.permissionMode);
-  if (input.maxTurns != null) args.push('--max-turns', String(input.maxTurns));
-  if (input.appendSystemPrompt) args.push('--append-system-prompt', input.appendSystemPrompt);
+  if (input.resumeSessionId) args.push(`--resume=${input.resumeSessionId}`);
+  if (input.model) args.push(`--model=${input.model}`);
+  if (input.permissionMode) args.push(`--permission-mode=${input.permissionMode}`);
+  if (input.maxTurns != null) args.push(`--max-turns=${input.maxTurns}`);
+  if (input.appendSystemPrompt) args.push(`--append-system-prompt=${input.appendSystemPrompt}`);
   if (input.allowedTools?.length) args.push('--allowedTools', ...input.allowedTools);
   if (input.disallowedTools?.length) args.push('--disallowedTools', ...input.disallowedTools);
 
+  args.push('--', input.prompt);
   return args;
 }
 

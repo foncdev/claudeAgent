@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
+import { assertChecked } from './policy.js';
 import { runClaude, type RunHandle } from './runner.js';
 import { WorkspaceRegistry } from './workspaces.js';
 import type { CreateJobInput, Job, JobEvent, JobStatus } from './types.js';
@@ -34,6 +35,8 @@ export class JobManager {
   constructor(readonly workspaces: WorkspaceRegistry) {}
 
   create(input: CreateJobInput): Job {
+    // 잡은 권한 MCP 서버 없이 돈다. 확인 없는 실행은 서버 설정으로만 켠다.
+    assertChecked(input, config.allowUnchecked);
     const ws = this.workspaces.require(input.workspaceId);
     const cwd = this.workspaces.resolveCwd(ws, input.subPath);
 

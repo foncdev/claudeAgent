@@ -9,6 +9,17 @@ export const permissionModeSchema = z.enum([
   'plan',
 ]);
 
+/** CLI 인자로 들어가는 값. `-`로 시작하면 CLI가 옵션으로 읽는다. runner.ts 참고. */
+const modelSchema = z
+  .string()
+  .max(100)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._:[\]-]*$/, '모델 이름 형식이 아닙니다.');
+const toolRuleSchema = z
+  .string()
+  .min(1)
+  .max(200)
+  .refine((v) => !v.startsWith('-'), '도구 이름은 -로 시작할 수 없습니다.');
+
 export const createWorkspaceSchema = z.object({
   id: z.string().min(1).max(64),
   path: z.string().min(1),
@@ -19,10 +30,10 @@ export const createJobSchema = z.object({
   workspaceId: z.string().min(1),
   prompt: z.string().min(1).max(100_000),
   subPath: z.string().max(1000).optional(),
-  model: z.string().max(100).optional(),
+  model: modelSchema.optional(),
   permissionMode: permissionModeSchema.optional(),
-  allowedTools: z.array(z.string()).max(100).optional(),
-  disallowedTools: z.array(z.string()).max(100).optional(),
+  allowedTools: z.array(toolRuleSchema).max(100).optional(),
+  disallowedTools: z.array(toolRuleSchema).max(100).optional(),
   appendSystemPrompt: z.string().max(50_000).optional(),
   resumeSessionId: z.string().uuid().optional(),
   maxTurns: z.number().int().positive().max(1000).optional(),
@@ -51,7 +62,7 @@ export const createSessionSchema = z.object({
    */
   path: z.string().min(1).max(4096).optional(),
   subPath: z.string().max(1000).optional(),
-  model: z.string().max(100).optional(),
+  model: modelSchema.optional(),
   policyMode: policyModeSchema.optional(),
   permissionMode: permissionModeSchema.optional(),
   appendSystemPrompt: z.string().max(50_000).optional(),
@@ -89,7 +100,7 @@ export const updateSessionSchema = z.object({
 
 /** 이어가기 시 바꿀 수 있는 값들. 모두 생략하면 원래 설정을 따른다. */
 export const resumeSessionSchema = z.object({
-  model: z.string().max(100).optional(),
+  model: modelSchema.optional(),
   policyMode: policyModeSchema.optional(),
   permissionMode: permissionModeSchema.optional(),
   /**

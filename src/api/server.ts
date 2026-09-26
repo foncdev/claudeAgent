@@ -29,6 +29,7 @@ import { SessionRegistry, SessionError } from '../core/sessions.js';
 import type { SessionEvent } from '../core/session.js';
 import type { JobEvent } from '../core/types.js';
 import * as files from '../core/files.js';
+import { PolicyError } from '../core/policy.js';
 import { history } from '../core/history.js';
 
 /**
@@ -530,6 +531,10 @@ export function createServer(): {
       res.status(400).json({
         error: { code: 'invalid_request', message: '요청 형식 오류', issues: err.issues },
       });
+      return;
+    }
+    if (err instanceof PolicyError) {
+      res.status(403).json({ error: { code: err.code, message: err.message } });
       return;
     }
     if (err instanceof SessionError) {

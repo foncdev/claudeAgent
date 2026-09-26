@@ -50,7 +50,8 @@ npx tsx src/client.ts ws
 | `HOST` | `127.0.0.1` | 리스닝 주소. 로컬 전용 유지 권장 |
 | `AGENT_ALLOWED_ROOTS` | `~/develop` | 워크스페이스 허용 루트. `:`로 여러 개 |
 | `AGENT_API_KEY` | (없음) | 설정 시 `x-api-key` 헤더 필수. 비우면 이 기기 주소로만 받고, `HOST`가 루프백이 아니면 뜨지 않는다 |
-| `AGENT_CORS_ORIGINS` | (없음) | 브라우저에서 직접 부를 수 있는 오리진. 쉼표로 여러 개. 목록에 없는 `Origin`은 403 |
+| `AGENT_CORS_ORIGINS` | (없음) | 브라우저에서 직접 부를 수 있는 오리진. 쉼표로 여러 개. 목록에 없는 `Origin`은 403. relay를 거치지 않고 웹·안경앱에서 직접 붙을 때만 필요 |
+| `AGENT_ALLOW_UNCHECKED` | (꺼짐) | `1`이면 `bypassPermissions`·`auto` 모드와 잡의 `allowedTools`를 받는다. 끄면 403 |
 | `AGENT_MAX_CONCURRENT` | `3` | 동시 실행 잡 수 |
 | `AGENT_TIMEOUT_MS` | `1800000` | 기본 타임아웃 (30분) |
 | `CLAUDE_BIN` | `claude` | CLI 경로 |
@@ -161,8 +162,8 @@ curl -X POST localhost:4000/jobs -H "x-api-key: $KEY" \
 | `subPath` | | 워크스페이스 내부 상대 경로에서 실행 |
 | `wait` | | `true`면 완료까지 대기 |
 | `model` | | `opus`, `sonnet` 등 |
-| `permissionMode` | | `acceptEdits`, `plan`, `bypassPermissions` 등 |
-| `allowedTools` / `disallowedTools` | | 도구 제한 |
+| `permissionMode` | | `acceptEdits`, `plan` 등. `bypassPermissions`·`auto`는 `AGENT_ALLOW_UNCHECKED=1`일 때만 |
+| `allowedTools` / `disallowedTools` | | 도구 허용·제한. `allowedTools`는 `AGENT_ALLOW_UNCHECKED=1`일 때만 |
 | `appendSystemPrompt` | | 시스템 프롬프트 추가 |
 | `resumeSessionId` | | 기존 세션 이어서 실행 |
 | `maxTurns`, `timeoutMs` | | 실행 한도 |
@@ -233,8 +234,13 @@ es.addEventListener('result', (e) => { console.log(JSON.parse(e.data).job.result
 
 ## 주의
 
-`permissionMode: "bypassPermissions"`는 모든 권한 확인을 건너뛴다. 신뢰할 수 있는
-프롬프트에만 사용할 것. 기본값은 CLI 기본 동작(`default`)이다.
+`permissionMode: "bypassPermissions"`·`"auto"`와 잡의 `allowedTools`는 사람의 확인 없이 도구를
+돌린다. relay가 `/sessions`·`/jobs`를 중계하므로, 요청 값으로 받아주면 폰·안경 로그인 토큰 하나로
+밖에서 확인 없는 실행이 된다. 그래서 기본은 거절(403)이고, 이 기기에서 자동화에 쓸 때만
+`AGENT_ALLOW_UNCHECKED=1`로 켠다. 기본 모드는 세션이 `manual`, 잡이 CLI 기본 동작(`default`)이다.
+
+CLI에 넘기는 값은 `--옵션=값` 한 덩어리로, 잡의 프롬프트는 `--` 뒤에 둔다. `-`로 시작하는 값이
+CLI 옵션으로 읽히지 않게 하려는 것이다.
 
 `AGENT_API_KEY` 없이 `HOST`를 루프백이 아닌 주소로 열면 매니저가 뜨지 않는다. 매니저는 임의 코드
 실행 능력을 가지므로 네트워크 노출을 피하는 것이 안전하다.

@@ -1,5 +1,6 @@
 import { Session, type SessionInfo } from './session.js';
-import type { PolicyMode } from './policy.js';
+import { assertChecked, type PolicyMode } from './policy.js';
+import { config } from './config.js';
 import type { WorkspaceRegistry } from './workspaces.js';
 import { history } from './history.js';
 
@@ -30,6 +31,8 @@ export class SessionRegistry {
   constructor(private readonly workspaces: WorkspaceRegistry) {}
 
   create(input: CreateSessionInput): Session {
+    // 이어가기도 여기를 지나므로 한 곳에서 막으면 된다.
+    assertChecked(input, config.allowUnchecked);
     // 경로를 직접 준 경우를 우선한다. 없으면 등록된 워크스페이스를 쓴다.
     const ws = input.path
       ? this.workspaces.findOrCreateByPath(input.path)
