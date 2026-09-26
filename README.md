@@ -234,6 +234,10 @@ es.addEventListener('result', (e) => { console.log(JSON.parse(e.data).job.result
 `HOST`를 `0.0.0.0`으로 열 경우 반드시 `AGENT_API_KEY`를 설정하고, 매니저는 임의 코드
 실행 능력을 가지므로 네트워크 노출을 피하는 것이 안전하다.
 
+Claude CLI에는 `AGENT_`·`RELAY_`로 시작하는 환경변수를 넘기지 않는다. 넘기면 Claude가
+`echo $AGENT_API_KEY`로 매니저 키를 얻어 자기 권한을 스스로 풀 수 있다. 권한 MCP 서버에는
+매니저 키 대신 세션마다 새로 만든 키를 주며, 그 키로는 그 세션의 권한을 묻는 것만 된다.
+
 ## 관련
 
 - [relay-service](https://github.com/foncdev/relay-service) — 밖에서 붙게 해주는 중계 서버

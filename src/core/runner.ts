@@ -3,6 +3,7 @@ import type { Readable } from 'node:stream';
 import { EventEmitter } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
+import { childEnv } from './child-env.js';
 import type { CreateJobInput, Job, JobEvent, JobUsage } from './types.js';
 
 /** stream-json 한 줄을 느슨하게 표현한 타입. CLI 스키마 변화에 견디도록 optional로 둔다. */
@@ -128,11 +129,8 @@ export function runClaude(params: {
   try {
     child = spawn(config.claudeBin, args, {
       cwd,
-      env: {
-        ...process.env,
-        // 매니저가 CLI를 비대화형으로 띄운다는 표시.
-        CLAUDE_CODE_ENTRYPOINT: 'agent-cli-manager',
-      },
+      // 매니저·relay 비밀값은 빼고 넘긴다. child-env.ts 참고.
+      env: childEnv(),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   } catch (err) {

@@ -12,7 +12,8 @@ import { createInterface } from 'node:readline';
 
 const MANAGER_URL = process.env.AGENT_MANAGER_URL ?? 'http://127.0.0.1:4000';
 const SESSION_ID = process.env.AGENT_SESSION_ID ?? '';
-const API_KEY = process.env.AGENT_API_KEY ?? '';
+/** 이 세션 전용 키. 매니저 API 키가 아니다 — session.ts의 permToken 참고. */
+const PERM_TOKEN = process.env.AGENT_PERM_TOKEN ?? '';
 
 interface RpcMessage {
   jsonrpc?: string;
@@ -35,7 +36,7 @@ async function askManager(
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        ...(API_KEY ? { 'x-api-key': API_KEY } : {}),
+        'x-perm-token': PERM_TOKEN,
       },
       body: JSON.stringify({ sessionId: SESSION_ID, toolName, input }),
     });

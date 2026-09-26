@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { timingSafeEqual } from 'node:crypto';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { ZodError } from 'zod';
 import { config } from '../core/config.js';
@@ -42,6 +43,13 @@ function asyncHandler(
   };
 }
 
+/** 길이가 달라도 던지지 않는 상수 시간 비교. */
+function sameSecret(a: string, b: string): boolean {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+}
+
 export function createServer(): {
   app: express.Express;
   manager: JobManager;
@@ -75,7 +83,9 @@ export function createServer(): {
     /^\/(workspaces|jobs|sessions|internal)\b/.test(p);
 
   // API 키가 설정된 경우에만 인증을 강제한다. 헬스체크는 열어둔다.
+  // 권한 MCP 서버는 API 키 대신 세션 전용 키를 쓴다. 아래 /internal/permission에서 본다.
   app.use((req, res, next) => {
+    if (req.path === '/internal/permission') return next();
     if (!config.apiKey || req.path === '/health' || !isApiPath(req.path)) return next();
     // EventSource는 헤더를 못 붙이므로 SSE 경로에 한해 쿼리 키를 받는다.
     const isStream = req.path.endsWith('/stream');
@@ -443,6 +453,12 @@ export function createServer(): {
       const session = sessions.get(sessionId);
       if (!session) {
         res.json({ behavior: 'deny', message: '세션을 찾을 수 없습니다.' });
+        return;
+      }
+      // 이 세션을 띄울 때 권한 MCP 서버에만 건넨 키다. 다른 세션 이름으로
+      // 요청을 끼워 넣지 못하게 세션마다 따로 맞춰 본다.
+      if (!sameSecret(req.header('x-perm-token') ?? '', session.permToken)) {
+        res.status(401).json({ behavior: 'deny', message: '권한 서버 키가 맞지 않습니다.' });
         return;
       }
       const decision = await session.requestPermission(toolName, input);

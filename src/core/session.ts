@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessByStdio } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Readable, Writable } from 'node:stream';
@@ -8,6 +8,7 @@ import { config } from './config.js';
 import { evaluate, summarize, type PolicyMode } from './policy.js';
 import { buildMemoryPrompt, collectMemory, type MemoryFile } from './claude-md.js';
 import { history } from './history.js';
+import { childEnv } from './child-env.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -92,6 +93,14 @@ interface StreamLine {
  */
 export class Session {
   readonly id = randomUUID();
+  /**
+   * 권한 MCP 서버가 이 세션의 권한을 물을 때 내는 키.
+   *
+   * 예전에는 매니저의 API 키를 그대로 넘겼다. MCP 설정은 명령줄 인자라
+   * ps로 보이고, 그 키면 매니저의 모든 것을 할 수 있었다. 이 키로는
+   * 이 세션의 권한을 "묻는" 것밖에 못 한다. 승인은 여전히 사람이 한다.
+   */
+  readonly permToken = randomBytes(32).toString('hex');
   readonly events = new EventEmitter();
 
   private child?: ChildProcessByStdio<Writable, Readable, Readable>;
@@ -221,7 +230,7 @@ export class Session {
           env: {
             AGENT_MANAGER_URL: `http://${config.host}:${config.port}`,
             AGENT_SESSION_ID: this.id,
-            AGENT_API_KEY: config.apiKey,
+            AGENT_PERM_TOKEN: this.permToken,
           },
         },
       },
@@ -262,7 +271,8 @@ export class Session {
 
     const child = spawn(config.claudeBin, args, {
       cwd: this.cwd,
-      env: { ...process.env, CLAUDE_CODE_ENTRYPOINT: 'agent-cli-manager' },
+      // 매니저·relay 비밀값은 빼고 넘긴다. child-env.ts 참고.
+      env: childEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     this.child = child;
