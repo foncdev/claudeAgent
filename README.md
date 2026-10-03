@@ -7,7 +7,7 @@
 
 ```
 외부 클라이언트 ──HTTP──> 매니저(Express) ──spawn──> claude -p --output-format stream-json
-                            │                              │
+                            │                                  │
                             └── SSE 스트림 <── stream-json 파싱 ──┘
 ```
 
