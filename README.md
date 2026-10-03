@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/icon.svg" width="112" alt="claudeAgent 아이콘"></p>
+
 # agent-cli manager
 
 로컬에서 Claude Code CLI를 제어하는 매니저. 외부 API(REST + SSE)로 프롬프트를 보내고,
