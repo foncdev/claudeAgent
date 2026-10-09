@@ -41,6 +41,11 @@ export interface SessionInfo {
   pending: Array<Omit<PendingPermission, 'resolve'>>;
   /** 주입된 CLAUDE.md 목록. */
   memory: Array<{ scope: string; path: string }>;
+  /**
+   * 이 세션에서 쓸 수 있는 / 명령(기본 명령·스킬, / 없이). CLI가 시작할 때 알려 준다 —
+   * 첫 입력을 받은 뒤에 오므로 그 전에는 비어 있다. 안경은 여기서 골라 보낸다.
+   */
+  slashCommands: string[];
 }
 
 export interface SessionEvent {
@@ -72,6 +77,7 @@ interface StreamLine {
   is_error?: boolean;
   total_cost_usd?: number;
   num_turns?: number;
+  slash_commands?: string[];
   message?: {
     content?: Array<{
       type?: string;
@@ -110,6 +116,7 @@ export class Session {
   private readonly pending = new Map<string, PendingPermission>();
   private turns = 0;
   private totalCostUsd = 0;
+  private slashCommands: string[] = [];
   private createdAt = new Date().toISOString();
   private lastActivityAt = this.createdAt;
   private closed = false;
@@ -163,6 +170,7 @@ export class Session {
       totalCostUsd: this.totalCostUsd,
       pending: [...this.pending.values()].map(({ resolve: _r, ...rest }) => rest),
       memory: this.getMemoryFiles(),
+      slashCommands: this.slashCommands,
     };
   }
 
@@ -327,9 +335,17 @@ export class Session {
     }
 
     if (msg.type === 'system' && msg.subtype === 'init') {
+      if (Array.isArray(msg.slash_commands)) {
+        this.slashCommands = msg.slash_commands.filter((c): c is string => typeof c === 'string');
+      }
       if (msg.session_id) {
         this.claudeSessionId = msg.session_id;
-        this.emit({ type: 'session', claudeSessionId: msg.session_id, model: msg.model });
+        this.emit({
+          type: 'session',
+          claudeSessionId: msg.session_id,
+          model: msg.model,
+          slashCommands: this.slashCommands,
+        });
       }
       return;
     }

@@ -206,6 +206,10 @@ curl -X DELETE localhost:4000/sessions/$SID -H "x-api-key: $KEY"  # 종료
 `permission_request`가 오면 세션은 `waiting` 상태로 멈춘다.
 `POST /sessions/:id/permissions`로 응답해야 진행된다.
 
+세션 정보의 `slashCommands`는 그 세션에서 쓸 수 있는 `/` 명령(기본 명령·스킬, `/` 없이)이다. CLI가 시작할 때
+알려 주는데 첫 입력을 받은 뒤에 오므로 그 전에는 비어 있다. `session` 이벤트에도 실린다.
+`/compact`·`/usage` 같은 명령은 프롬프트로 그대로 보내면 된다(`POST /sessions/:id/input`).
+
 ### 잡 SSE 스트림
 
 ```bash
