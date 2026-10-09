@@ -9,6 +9,7 @@ import { evaluate, summarize, type PolicyMode } from './policy.js';
 import { buildMemoryPrompt, collectMemory, type MemoryFile } from './claude-md.js';
 import { history } from './history.js';
 import { childEnv } from './child-env.js';
+import { runtime } from './runtime.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -222,12 +223,15 @@ export class Session {
 
   /** CLI 프로세스를 띄운다. */
   start(): void {
+    // 실행 파일 하나로 돌면 자기 자신을 권한 서버로 띄운다(src/bin.ts).
     // tsx로 개발 중이면 .ts를, 빌드본이면 .js를 실행한다.
     const isTs = HERE.includes(`${path.sep}src${path.sep}`) || HERE.endsWith(`${path.sep}src`);
     const permServer = path.join(HERE, isTs ? 'permission-server.ts' : 'permission-server.js');
-    const runner = isTs
-      ? { command: 'npx', args: ['tsx', permServer] }
-      : { command: process.execPath, args: [permServer] };
+    const runner = runtime.selfExec
+      ? { command: process.execPath, args: ['--permission-server'] }
+      : isTs
+        ? { command: 'npx', args: ['tsx', permServer] }
+        : { command: process.execPath, args: [permServer] };
 
     const mcpConfig = {
       mcpServers: {

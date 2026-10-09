@@ -1,6 +1,6 @@
 {
   "name": "agent-cli-manager",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Claude Code CLI를 로컬에서 제어하는 매니저 (REST + SSE)",
@@ -9,6 +9,7 @@
     "start": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "serve": "node dist/index.js",
+    "build:bin": "bash scripts/build-bin.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test test/*.test.ts"
   },

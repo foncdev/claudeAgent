@@ -21,7 +21,32 @@
 | `src/core/manager.ts` | 잡 큐, 동시 실행 제한, 이벤트 버퍼링 |
 | `src/api/server.ts` | REST + SSE 엔드포인트 |
 
-## 실행
+## 실행 파일로 받기
+
+Node·`npm install`·빌드 없이 파일 하나로 돈다. [Releases](https://github.com/foncdev/claudeAgent/releases)에서
+자기 기기에 맞는 것을 받는다. Claude Code CLI(`claude`)는 따로 깔고 로그인해 둬야 한다 — 세션은 그걸 띄운다.
+
+| 파일 | 기기 |
+|---|---|
+| `claude-agent-<버전>-darwin-arm64` | Apple Silicon 맥 |
+| `claude-agent-<버전>-darwin-x64` | 인텔 맥 |
+| `claude-agent-<버전>-linux-x64` · `linux-arm64` | 리눅스 |
+| `claude-agent-<버전>-windows-x64.exe` | 윈도우 |
+
+```bash
+chmod +x claude-agent-1.0.0-darwin-arm64
+./claude-agent-1.0.0-darwin-arm64 --version
+./claude-agent-1.0.0-darwin-arm64            # 실행한 폴더의 .env를 읽는다(아래 환경변수)
+```
+
+- 맥용은 Developer ID로 서명하고 공증했다. 브라우저로 받아도 바로 뜬다(처음 실행할 때 맥이 온라인으로 공증을 확인한다).
+- 설정·자료는 실행한 폴더 기준이다: `.env`, `data/`(`AGENT_DATA_DIR`로 바꿀 수 있다).
+- 권한 확인 서버는 따로 있지 않다. 실행 파일이 자기 자신을 `--permission-server`로 다시 띄운다(`src/bin.ts`).
+- 받은 파일이 맞는지는 같이 올린 `SHA256SUMS`로 본다: `shasum -a 256 -c SHA256SUMS`.
+- 만들기: `npm run build:bin`(Bun 필요). 결과는 `release/`. 한 대상만: `npm run build:bin -- darwin-arm64`.
+  맥용 서명·공증: `DEVELOPER_ID="Developer ID Application: …" NOTARY_PROFILE=notary npm run build:bin`.
+
+## 실행 (소스에서)
 
 ```bash
 npm install

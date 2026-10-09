@@ -31,6 +31,7 @@ import type { JobEvent } from '../core/types.js';
 import * as files from '../core/files.js';
 import { PolicyError } from '../core/policy.js';
 import { history } from '../core/history.js';
+import { VERSION } from '../core/version.js';
 
 /**
  * Express 4는 async 핸들러의 rejection을 잡지 못한다.
@@ -149,7 +150,7 @@ export function createServer(): {
    * 오는데, relay-link가 키를 붙이므로 그대로 받는다.
    */
   app.get('/health', (req, res) => {
-    const basic = { ok: true, version: '0.1.0' };
+    const basic = { ok: true, version: VERSION };
     if (config.apiKey && !sameSecret(req.header('x-api-key') ?? '', config.apiKey)) {
       res.json(basic);
       return;
